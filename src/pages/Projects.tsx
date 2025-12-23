@@ -1,28 +1,74 @@
+import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Users, CheckSquare, Mail, Calendar, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useParams } from 'react-router-dom';
+import { Project, Priority } from '@/lib/types';
 
 export default function Projects() {
-  const { projectId } = useParams();
-  const { projects, tasks, messages, meetings, documents, setCurrentProject, updateTaskStatus } = useAppStore();
-  const selectedProject = projectId ? projects.find(p => p.id === projectId) : projects[0];
+  const { projects, tasks, messages, meetings, documents, setCurrentProject, updateTaskStatus, addProject, currentProjectId } = useAppStore();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newProject, setNewProject] = useState({
+    name: '',
+    description: '',
+    priority: 'medium' as Priority,
+    color: 'sky'
+  });
+
+  // Use currentProjectId from store to track selected project
+  const selectedProject = currentProjectId ? projects.find(p => p.id === currentProjectId) : projects[0];
 
   const projectTasks = tasks.filter(t => t.projectId === selectedProject?.id);
   const projectMessages = messages.filter(m => m.projectId === selectedProject?.id);
   const projectMeetings = meetings.filter(m => m.projectId === selectedProject?.id);
   const projectDocs = documents.filter(d => d.projectId === selectedProject?.id);
 
+  const handleProjectSelect = (projectId: string) => {
+    setCurrentProject(projectId);
+  };
+
+  const handleCreateProject = () => {
+    if (!newProject.name.trim()) return;
+    
+    const project: Project = {
+      id: `project-${Date.now()}`,
+      name: newProject.name,
+      description: newProject.description,
+      priority: newProject.priority,
+      color: newProject.color,
+      participants: [],
+      createdAt: new Date()
+    };
+    
+    addProject(project);
+    setCurrentProject(project.id);
+    setIsDialogOpen(false);
+    setNewProject({ name: '', description: '', priority: 'medium', color: 'sky' });
+  };
+
+  const colorOptions = [
+    { value: 'rose', label: 'Rose', color: 'hsl(350 89% 60%)' },
+    { value: 'lavender', label: 'Lavender', color: 'hsl(262 52% 64%)' },
+    { value: 'sky', label: 'Sky', color: 'hsl(199 89% 48%)' },
+    { value: 'mint', label: 'Mint', color: 'hsl(158 64% 52%)' },
+  ];
+
   return (
     <div className="p-6 pb-24 lg:pb-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl font-bold">Projects</h1>
-        <Button><Plus className="w-4 h-4 mr-2" />New Project</Button>
+        <Button onClick={() => setIsDialogOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />New Project
+        </Button>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-6">
@@ -31,7 +77,7 @@ export default function Projects() {
           {projects.map(project => (
             <button
               key={project.id}
-              onClick={() => setCurrentProject(project.id)}
+              onClick={() => handleProjectSelect(project.id)}
               className={cn("w-full text-left p-4 rounded-xl border-2 transition-all", selectedProject?.id === project.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50")}
             >
               <div className="flex items-center gap-3 mb-2">
@@ -123,6 +169,85 @@ export default function Projects() {
           </div>
         )}
       </div>
+
+      {/* Create Project Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription>Add a new project to organize your work and collaborate with your team.</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Project Name</Label>
+              <Input 
+                id="name" 
+                placeholder="e.g., Q1 Marketing Campaign" 
+                value={newProject.name}
+                onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea 
+                id="description" 
+                placeholder="Describe the project goals and scope..." 
+                value={newProject.description}
+                onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select 
+                  value={newProject.priority} 
+                  onValueChange={(v) => setNewProject(prev => ({ ...prev, priority: v as Priority }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <Select 
+                  value={newProject.color} 
+                  onValueChange={(v) => setNewProject(prev => ({ ...prev, color: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {colorOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: opt.color }} />
+                          {opt.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateProject} disabled={!newProject.name.trim()}>Create Project</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

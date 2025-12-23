@@ -27,6 +27,13 @@ interface AppStore extends AppState {
   updateTaskStatus: (taskId: string, status: Task['status']) => void;
   addTask: (task: Task) => void;
   
+  // Projects
+  addProject: (project: Project) => void;
+  
+  // Folders & Documents
+  addFolder: (folder: Folder) => void;
+  addDocument: (document: Document) => void;
+  
   // Calendar
   updateCalendarEvent: (eventId: string, updates: Partial<CalendarEvent>) => void;
   resolveConflict: (eventId: string, newStart: Date, newEnd: Date) => void;
@@ -138,6 +145,20 @@ export const useAppStore = create<AppStore>()(
       
       addTask: (task) => set((state) => ({
         tasks: [...state.tasks, task]
+      })),
+      
+      // Projects
+      addProject: (project) => set((state) => ({
+        projects: [...state.projects, project]
+      })),
+      
+      // Folders & Documents
+      addFolder: (folder) => set((state) => ({
+        folders: [...state.folders, folder]
+      })),
+      
+      addDocument: (document) => set((state) => ({
+        documents: [...state.documents, document]
       })),
       
       // Calendar
