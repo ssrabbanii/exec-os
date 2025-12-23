@@ -1,42 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, MicOff, Send, User, Sparkles, FileText, Search, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Send, User, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import avatar images
-import avatarSophia from '@/assets/avatars/avatar-sophia.png';
-import avatarMei from '@/assets/avatars/avatar-mei.png';
-import avatarElena from '@/assets/avatars/avatar-elena.png';
+import avatarSydney from '@/assets/avatars/avatar-sydney.jpeg';
 import avatarVictoria from '@/assets/avatars/avatar-victoria.jpg';
-import avatarPriya from '@/assets/avatars/avatar-priya.png';
-import avatarMichelle from '@/assets/avatars/avatar-michelle.png';
-import avatarIsabella from '@/assets/avatars/avatar-isabella.png';
+import avatarSarah from '@/assets/avatars/avatar-sarah.jpeg';
+
+// Video paths (from public folder)
+const avatarVideos: Record<string, string> = {
+  'sydney': '/avatars/sydney-intro.mov',
+  'victoria': '/avatars/victoria-intro.mov',
+  'sarah': '/avatars/sarah-intro.mov',
+};
 
 const avatarImages: Record<string, string> = {
-  'sophia': avatarSophia,
-  'mei': avatarMei,
-  'elena': avatarElena,
+  'sydney': avatarSydney,
   'victoria': avatarVictoria,
-  'priya': avatarPriya,
-  'michelle': avatarMichelle,
-  'isabella': avatarIsabella,
+  'sarah': avatarSarah,
 };
 
 const avatarNames: Record<string, string> = {
-  'sophia': 'Sophia',
-  'mei': 'Mei',
-  'elena': 'Elena',
+  'sydney': 'Sydney',
   'victoria': 'Victoria',
-  'priya': 'Priya',
-  'michelle': 'Michelle',
-  'isabella': 'Isabella',
+  'sarah': 'Sarah',
 };
 
 const voiceSimulations = [
@@ -59,21 +54,22 @@ const quickPrompts = [
 export default function Assistant() {
   const { 
     assistantMode, setAssistantMode, assistantMessages, addAssistantMessage, 
-    documents, currentProjectId, projects, settings, meetings 
+    currentProjectId, projects, settings, meetings 
   } = useAppStore();
   const [input, setInput] = useState('');
-  const [showKnowledgePicker, setShowKnowledgePicker] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interpretedText, setInterpretedText] = useState('');
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [showResponse, setShowResponse] = useState(false);
   const [responseMessage, setResponseMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   const currentProject = projects.find(p => p.id === currentProjectId);
-  const selectedAvatarId = settings?.selectedAvatarId || 'sophia';
-  const avatarImage = avatarImages[selectedAvatarId] || avatarSophia;
-  const avatarName = avatarNames[selectedAvatarId] || 'Sophia';
+  const selectedAvatarId = settings?.selectedAvatarId || 'sydney';
+  const avatarImage = avatarImages[selectedAvatarId] || avatarSydney;
+  const avatarName = avatarNames[selectedAvatarId] || 'Sydney';
+  const avatarVideo = avatarVideos[selectedAvatarId] || avatarVideos['sydney'];
 
   // Simulate voice interpretation typing effect
   useEffect(() => {
@@ -214,9 +210,6 @@ export default function Assistant() {
       e.preventDefault();
       handleSend();
     }
-    if (input.endsWith('/')) {
-      setShowKnowledgePicker(true);
-    }
   };
 
   return (
@@ -235,27 +228,27 @@ export default function Assistant() {
       </div>
 
       <div className="flex-1 flex gap-6 min-h-0">
-        {/* Avatar Panel (when in avatar mode) */}
+        {/* Avatar Panel (when in avatar mode) - Shows Video */}
         {assistantMode === 'avatar' && (
-          <Card className="w-80 flex-shrink-0 flex flex-col items-center justify-center p-6 bg-gradient-to-b from-card to-muted/30 relative overflow-hidden">
-            {/* Avatar Image */}
-            <motion.div 
-              className={cn(
-                "w-40 h-40 rounded-full overflow-hidden mb-4 ring-4 ring-primary/20 shadow-xl",
-                isListening && "ring-primary ring-offset-2 ring-offset-background"
-              )}
-              animate={isListening ? { scale: [1, 1.02, 1] } : {}}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              <img 
-                src={avatarImage} 
-                alt={avatarName}
+          <Card className="w-96 flex-shrink-0 flex flex-col items-center justify-center p-6 bg-gradient-to-b from-card to-muted/30 relative overflow-hidden">
+            {/* Avatar Video */}
+            <div className={cn(
+              "w-full aspect-[9/16] max-h-[400px] rounded-2xl overflow-hidden mb-4 shadow-xl relative",
+              isListening && "ring-4 ring-primary ring-offset-2 ring-offset-background"
+            )}>
+              <video 
+                ref={videoRef}
+                src={avatarVideo}
                 className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={avatarImage}
               />
-            </motion.div>
-            
-            <h3 className="font-display font-semibold text-lg text-foreground">{avatarName}</h3>
-            <p className="text-sm text-muted-foreground mb-4">Your Executive Assistant</p>
+              {/* Gradient overlay at bottom */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+            </div>
             
             {/* Voice Button */}
             <Button 
@@ -286,7 +279,7 @@ export default function Assistant() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mt-6 w-full"
+                  className="mt-4 w-full"
                 >
                   <div className="bg-muted/50 rounded-xl p-4 border border-border">
                     <p className="text-xs text-muted-foreground mb-1">Listening...</p>
@@ -362,34 +355,19 @@ export default function Assistant() {
             </div>
 
             {/* Input */}
-            <div className="border-t border-border p-4">
-              <div className="relative">
+            <div className="p-4 border-t border-border">
+              <div className="flex gap-2">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={`Ask ${avatarName} anything... (use / to insert sources)`}
-                  className="pr-12"
+                  placeholder="Ask anything... Use / to add knowledge"
+                  className="flex-1"
                 />
-                <Button size="icon" className="absolute right-1 top-1 h-8 w-8" onClick={() => handleSend()}>
+                <Button onClick={() => handleSend()} disabled={!input.trim()}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
-              
-              {/* Knowledge Picker */}
-              {showKnowledgePicker && (
-                <Card className="absolute bottom-full left-0 right-0 mb-2 p-2 max-h-60 overflow-auto">
-                  <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground">
-                    <Search className="w-3 h-3" /> Insert from knowledge base
-                  </div>
-                  {documents.slice(0, 5).map(doc => (
-                    <button key={doc.id} className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-muted text-left" onClick={() => { setInput(input + doc.title + ' '); setShowKnowledgePicker(false); }}>
-                      <FileText className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{doc.title}</span>
-                    </button>
-                  ))}
-                </Card>
-              )}
             </div>
           </Card>
         </div>

@@ -3,9 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Sparkles, Check, ArrowRight, ArrowLeft, User, Link2, FolderPlus, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Check, ArrowRight, ArrowLeft, User, Link2, FolderPlus, Users, Lock, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AvatarSelector } from '@/components/avatar/AvatarSelector';
+
+// Import avatar images
+import avatarSydney from '@/assets/avatars/avatar-sydney.jpeg';
+import avatarVictoria from '@/assets/avatars/avatar-victoria.jpg';
+import avatarSarah from '@/assets/avatars/avatar-sarah.jpeg';
+import avatarMei from '@/assets/avatars/avatar-mei.png';
+import avatarSophia from '@/assets/avatars/avatar-sophia.png';
+import avatarElena from '@/assets/avatars/avatar-elena.png';
 
 const steps = [
   { id: 'welcome', title: 'Welcome', icon: Sparkles },
@@ -13,6 +21,39 @@ const steps = [
   { id: 'sources', title: 'Connect Sources', icon: Link2 },
   { id: 'project', title: 'First Project', icon: FolderPlus },
   { id: 'contacts', title: 'Priority Contacts', icon: Users },
+];
+
+const mainAvatars = [
+  {
+    id: 'sydney',
+    name: 'Sydney',
+    image: avatarSydney,
+    personality: 'Confident & Professional',
+    style: 'Executive Partner',
+    videoPreview: '/avatars/sydney-intro.mov',
+  },
+  {
+    id: 'victoria',
+    name: 'Victoria',
+    image: avatarVictoria,
+    personality: 'Confident & Direct',
+    style: 'C-Suite Coach',
+    videoPreview: '/avatars/victoria-intro.mov',
+  },
+  {
+    id: 'sarah',
+    name: 'Sarah',
+    image: avatarSarah,
+    personality: 'Warm & Strategic',
+    style: 'Leadership Advisor',
+    videoPreview: '/avatars/sarah-intro.mov',
+  },
+];
+
+const comingSoonAvatars = [
+  { id: 'mei', name: 'Mei', image: avatarMei },
+  { id: 'sophia', name: 'Sophia', image: avatarSophia },
+  { id: 'elena', name: 'Elena', image: avatarElena },
 ];
 
 const mockSources = [
@@ -26,10 +67,11 @@ const mockSources = [
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(0);
   const { contacts, projects, setSelectedAvatar, addConnectedSource, addPriorityContact, completeOnboarding } = useAppStore();
-  const [selectedAvatarId, setSelectedAvatarLocal] = useState('mei');
+  const [selectedAvatarId, setSelectedAvatarLocal] = useState('sydney'); // Sydney as default
   const [connectedSources, setConnectedSources] = useState<string[]>([]);
   const [selectedProject, setSelectedProject] = useState(projects[0]?.id);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
   const handleNext = () => {
     if (currentStep === steps.length - 1) {
@@ -50,9 +92,11 @@ export default function Onboarding() {
     setSelectedContacts(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
   };
 
+  const selectedAvatar = mainAvatars.find(a => a.id === selectedAvatarId);
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         {/* Progress */}
         <div className="flex items-center justify-center gap-2 mb-8">
           {steps.map((step, i) => (
@@ -81,12 +125,94 @@ export default function Onboarding() {
                     <h2 className="font-display text-2xl font-bold mb-2">Choose Your Avatar</h2>
                     <p className="text-muted-foreground">Select an AI assistant that matches your style</p>
                   </div>
-                  <AvatarSelector
-                    selectedAvatarId={selectedAvatarId}
-                    onSelectAvatar={setSelectedAvatarLocal}
-                    compact={false}
-                    showVoiceOptions={false}
-                  />
+                  
+                  {/* Main 3 Avatars with larger cards */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {mainAvatars.map((avatar) => (
+                      <motion.button
+                        key={avatar.id}
+                        onClick={() => setSelectedAvatarLocal(avatar.id)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={cn(
+                          "relative group rounded-2xl overflow-hidden border-2 transition-all duration-200 text-left",
+                          selectedAvatarId === avatar.id 
+                            ? "border-primary ring-4 ring-primary/20" 
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <div className="aspect-[3/4] overflow-hidden relative">
+                          <img
+                            src={avatar.image}
+                            alt={avatar.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          {/* Play button overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                              <Play className="w-5 h-5 text-primary ml-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <p className="font-semibold text-white text-xl">{avatar.name}</p>
+                          <p className="text-white/80 text-sm">{avatar.personality}</p>
+                          <p className="text-white/60 text-xs">{avatar.style}</p>
+                        </div>
+                        {selectedAvatarId === avatar.id && (
+                          <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                            <Check className="w-5 h-5 text-primary-foreground" />
+                          </div>
+                        )}
+                      </motion.button>
+                    ))}
+                  </div>
+
+                  {/* Coming Soon */}
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Lock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">More avatars coming soon</span>
+                      <Badge variant="outline" className="text-xs">6+ new models</Badge>
+                    </div>
+                    <div className="flex gap-3">
+                      {comingSoonAvatars.map((avatar) => (
+                        <div
+                          key={avatar.id}
+                          className="relative w-16 h-20 rounded-xl overflow-hidden border-2 border-dashed border-muted opacity-50"
+                        >
+                          <img
+                            src={avatar.image}
+                            alt={avatar.name}
+                            className="w-full h-full object-cover grayscale"
+                          />
+                          <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                            <Lock className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        </div>
+                      ))}
+                      <div className="w-16 h-20 rounded-xl border-2 border-dashed border-muted flex items-center justify-center opacity-50">
+                        <span className="text-xs text-muted-foreground text-center">+3<br/>more</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selected Preview */}
+                  {selectedAvatar && (
+                    <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
+                      <img
+                        src={selectedAvatar.image}
+                        alt={selectedAvatar.name}
+                        className="w-14 h-14 rounded-xl object-cover"
+                      />
+                      <div className="flex-1">
+                        <p className="font-semibold">{selectedAvatar.name}</p>
+                        <p className="text-sm text-muted-foreground">{selectedAvatar.personality}</p>
+                      </div>
+                      <Badge className="bg-primary">Selected</Badge>
+                    </div>
+                  )}
                 </div>
               )}
 
