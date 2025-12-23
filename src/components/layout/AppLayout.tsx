@@ -40,38 +40,38 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-sidebar">
+      <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-background">
         {/* Logo */}
-        <div className="p-6 border-b border-sidebar-border">
+        <div className="p-6">
           <Link to="/dashboard" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-display font-bold text-lg text-sidebar-foreground">Aria</h1>
+              <h1 className="font-semibold text-lg text-foreground">Aria</h1>
               <p className="text-xs text-muted-foreground">Executive Assistant</p>
             </div>
           </Link>
         </div>
 
         {/* Demo Badge */}
-        <div className="px-4 py-3">
+        <div className="px-6 pb-4">
           <div className="demo-badge">
-            <span className="w-2 h-2 rounded-full bg-primary-foreground animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
             Demo Mode
           </div>
         </div>
 
         {/* Context Indicator */}
         {currentProjectData && (
-          <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-accent border border-border">
+          <div className="mx-6 mb-4 px-3 py-2 rounded-lg bg-accent border border-border">
             <p className="text-xs text-muted-foreground">Context</p>
             <p className="text-sm font-medium text-accent-foreground">{currentProjectData.name}</p>
           </div>
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 px-4 space-y-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -83,8 +83,8 @@ export function AppLayout() {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                   isActive 
-                    ? "bg-sidebar-accent text-sidebar-primary" 
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                    ? "bg-accent text-primary" 
+                    : "text-foreground hover:bg-secondary"
                 )}
               >
                 <Icon className="w-5 h-5" />
@@ -100,13 +100,13 @@ export function AppLayout() {
         </nav>
 
         {/* User */}
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+        <div className="p-4 border-t border-border">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-primary font-semibold">
               AM
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">Alex Morgan</p>
+              <p className="text-sm font-medium text-foreground truncate">Alex Morgan</p>
               <p className="text-xs text-muted-foreground truncate">CFO</p>
             </div>
           </div>
@@ -116,15 +116,15 @@ export function AppLayout() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen">
         {/* Mobile Header */}
-        <header className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-card">
+        <header className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-background">
           <Link to="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold">Aria</span>
+            <span className="font-semibold">Aria</span>
           </Link>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="demo-badge text-xs">Demo</div>
             <Button
               variant="ghost"
@@ -137,7 +137,7 @@ export function AppLayout() {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-secondary/30">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -153,7 +153,7 @@ export function AppLayout() {
         </div>
 
         {/* Mobile Bottom Nav */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex items-center justify-around py-2 px-4 z-50">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border flex items-center justify-around py-2 px-4 z-50">
           {navItems.slice(0, 5).map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -196,10 +196,10 @@ export function AppLayout() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="lg:hidden fixed right-0 top-0 bottom-0 w-72 bg-card border-l border-border z-50 flex flex-col"
+              className="lg:hidden fixed right-0 top-0 bottom-0 w-72 bg-background border-l border-border z-50 flex flex-col"
             >
               <div className="flex items-center justify-between p-4 border-b border-border">
-                <span className="font-display font-semibold">Menu</span>
+                <span className="font-semibold">Menu</span>
                 <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
                   <X className="w-5 h-5" />
                 </Button>
@@ -217,8 +217,8 @@ export function AppLayout() {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                         isActive 
-                          ? "bg-accent text-accent-foreground" 
-                          : "text-foreground hover:bg-muted"
+                          ? "bg-accent text-primary" 
+                          : "text-foreground hover:bg-secondary"
                       )}
                     >
                       <Icon className="w-5 h-5" />
