@@ -1,16 +1,24 @@
+import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { User, Sparkles, Link2, Bell, Download, RotateCcw, HelpCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { AvatarSelector } from '@/components/avatar/AvatarSelector';
 
 export default function Settings() {
-  const { user, settings, avatars, updateNotificationPreferences, resetDemoData } = useAppStore();
+  const { user, settings, updateNotificationPreferences, resetDemoData, setSelectedAvatar } = useAppStore();
+  const [selectedAvatarId, setSelectedAvatarId] = useState(settings.selectedAvatarId || 'mei');
+
+  const handleAvatarSelect = (avatarId: string) => {
+    setSelectedAvatarId(avatarId);
+    setSelectedAvatar(avatarId);
+    toast.success('Avatar updated');
+  };
 
   const handleExport = () => {
     const data = localStorage.getItem('exec-assistant-storage');
@@ -58,14 +66,11 @@ export default function Settings() {
           <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5" />Avatar & Voice</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-6 gap-3">
-            {avatars.map(avatar => (
-              <button key={avatar.id} className={cn("p-3 rounded-xl border-2 transition-all", settings.selectedAvatarId === avatar.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50")}>
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-mint-light to-lavender-light mx-auto flex items-center justify-center font-bold text-primary">{avatar.name[0]}</div>
-                <p className="text-xs text-center mt-1">{avatar.name}</p>
-              </button>
-            ))}
-          </div>
+          <AvatarSelector
+            selectedAvatarId={selectedAvatarId}
+            onSelectAvatar={handleAvatarSelect}
+            showVoiceOptions={true}
+          />
         </CardContent>
       </Card>
 
