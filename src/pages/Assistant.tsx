@@ -5,7 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, MicOff, Send, User, Sparkles, Loader2 } from 'lucide-react';
+import { 
+  Mic, MicOff, Send, User, Sparkles, Loader2, 
+  Calendar, Mail, FileText, Search, Bell, CheckSquare,
+  BarChart3, Users, Clock, Briefcase, MessageSquare, Zap,
+  ArrowRight, Plus
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,13 +47,71 @@ const voiceSimulations = [
   "What are the pending audit tasks?",
 ];
 
-const quickPrompts = [
-  "What are my top priorities today?",
-  "Summarize the latest from Sarah Chen",
-  "Draft an email to the auditor",
-  "What's on my calendar this week?",
-  "Create a brief for the board meeting",
-  "Show me pending audit tasks",
+// Quick action categories with beautiful cards
+const quickActionCategories = [
+  {
+    id: 'productivity',
+    title: 'Productivity',
+    icon: Zap,
+    color: 'from-amber-500 to-orange-500',
+    actions: [
+      { id: 'priorities', label: "Today's Priorities", icon: CheckSquare, prompt: "What are my top priorities today?" },
+      { id: 'tasks', label: 'Pending Tasks', icon: Clock, prompt: "Show me all my pending tasks" },
+      { id: 'reminders', label: 'Set Reminder', icon: Bell, prompt: "Set a reminder for" },
+    ]
+  },
+  {
+    id: 'communication',
+    title: 'Communication',
+    icon: MessageSquare,
+    color: 'from-blue-500 to-cyan-500',
+    actions: [
+      { id: 'email', label: 'Draft Email', icon: Mail, prompt: "Draft an email to" },
+      { id: 'messages', label: 'Unread Messages', icon: MessageSquare, prompt: "Show me unread messages from priority contacts" },
+      { id: 'contacts', label: 'Contact Summary', icon: Users, prompt: "Summarize the latest from Sarah Chen" },
+    ]
+  },
+  {
+    id: 'calendar',
+    title: 'Calendar',
+    icon: Calendar,
+    color: 'from-violet-500 to-purple-500',
+    actions: [
+      { id: 'today', label: "Today's Schedule", icon: Calendar, prompt: "What's on my calendar today?" },
+      { id: 'week', label: 'Week Overview', icon: Clock, prompt: "Show me my calendar for this week" },
+      { id: 'schedule', label: 'Schedule Meeting', icon: Plus, prompt: "Schedule a meeting with" },
+    ]
+  },
+  {
+    id: 'documents',
+    title: 'Documents',
+    icon: FileText,
+    color: 'from-emerald-500 to-teal-500',
+    actions: [
+      { id: 'summarize', label: 'Summarize Doc', icon: FileText, prompt: "Summarize the board meeting notes" },
+      { id: 'search', label: 'Search Knowledge', icon: Search, prompt: "Search for" },
+      { id: 'brief', label: 'Create Brief', icon: Briefcase, prompt: "Create a brief for the board meeting" },
+    ]
+  },
+  {
+    id: 'analytics',
+    title: 'Analytics',
+    icon: BarChart3,
+    color: 'from-pink-500 to-rose-500',
+    actions: [
+      { id: 'report', label: 'Generate Report', icon: BarChart3, prompt: "Generate a status report for" },
+      { id: 'audit', label: 'Audit Tasks', icon: CheckSquare, prompt: "Show me pending audit tasks" },
+      { id: 'insights', label: 'Get Insights', icon: Sparkles, prompt: "Give me insights on my productivity this week" },
+    ]
+  },
+];
+
+// Featured quick actions for the main view
+const featuredActions = [
+  { id: 'priorities', label: "What are my priorities?", icon: Zap, gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-500' },
+  { id: 'calendar', label: "Show my calendar", icon: Calendar, gradient: 'from-violet-500/10 to-purple-500/10', iconColor: 'text-violet-500' },
+  { id: 'email', label: "Draft an email", icon: Mail, gradient: 'from-blue-500/10 to-cyan-500/10', iconColor: 'text-blue-500' },
+  { id: 'summarize', label: "Summarize a document", icon: FileText, gradient: 'from-emerald-500/10 to-teal-500/10', iconColor: 'text-emerald-500' },
 ];
 
 export default function Assistant() {
@@ -63,6 +126,8 @@ export default function Assistant() {
   const [showResponse, setShowResponse] = useState(false);
   const [responseMessage, setResponseMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAllActions, setShowAllActions] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const currentProject = projects.find(p => p.id === currentProjectId);
@@ -83,18 +148,15 @@ export default function Assistant() {
 
   const handleVoiceClick = () => {
     if (!isListening) {
-      // Start listening - pick a random voice simulation
       const randomText = voiceSimulations[Math.floor(Math.random() * voiceSimulations.length)];
       setInterpretedText(randomText);
       setCurrentCharIndex(0);
       setIsListening(true);
       setShowResponse(false);
     } else {
-      // Stop listening - process the voice input
       setIsListening(false);
       setIsProcessing(true);
       
-      // Show processing response after a short delay
       setTimeout(() => {
         const fullText = interpretedText;
         let response = "Processing your request...";
@@ -105,7 +167,6 @@ export default function Assistant() {
           setResponseMessage(response);
           setShowResponse(true);
           
-          // Add to chat after showing popup
           setTimeout(() => {
             addAssistantMessage({ id: `u-${Date.now()}`, role: 'user', content: fullText, timestamp: new Date() });
             const detailedResponse = `Here are your upcoming meetings:\n\n${upcomingMeetings.map((m, i) => 
@@ -184,8 +245,9 @@ export default function Assistant() {
     if (!messageText.trim()) return;
 
     addAssistantMessage({ id: `u-${Date.now()}`, role: 'user', content: messageText, timestamp: new Date() });
+    setShowAllActions(false);
+    setSelectedCategory(null);
     
-    // Mock response
     setTimeout(() => {
       let response = "I don't have that in your knowledge base yet. Want to add a source?";
       
@@ -195,8 +257,18 @@ export default function Assistant() {
         response = "Sarah Chen (Board Chair) sent 2 messages recently:\n\n**Email (2 hours ago):** Requesting M&A pipeline update and updated cash flow projection for board pack.\n\n**WhatsApp (1 hour ago):** Asking if CFO commentary section is done.\n\nShall I draft a response to either?";
       } else if (messageText.toLowerCase().includes('draft') && messageText.toLowerCase().includes('email')) {
         response = "I've drafted an email for Michael Torres:\n\n---\n**Subject:** Re: Revenue Recognition Testing\n\nHi Michael,\n\nThank you for flagging the TechCorp contract modification. I'm reviewing the documentation now and will have our analysis ready by end of day.\n\nI'm available for a call at 3pm to discuss. Lisa will pull the supporting SSP documentation.\n\nBest regards,\nAlex\n\n---\n\n*Draft saved to Board Pack > Emails*. Would you like me to send this?";
-      } else if (messageText.toLowerCase().includes('calendar') || messageText.toLowerCase().includes('week')) {
+      } else if (messageText.toLowerCase().includes('calendar') || messageText.toLowerCase().includes('week') || messageText.toLowerCase().includes('schedule')) {
         response = "Your calendar for the next 7 days:\n\n• **Today 2pm** - Audit Status Call (KPMG) ⚠️ Conflict\n• **Today 2pm** - Lender Call (Capital One) ⚠️ Conflict\n• **Tomorrow** - FP&A Team Meeting\n• **In 2 days** - Audit Committee Pre-Meeting\n• **In 3 days** - Q4 Board Meeting\n• **In 5 days** - Budget Kickoff\n\n⚠️ You have a scheduling conflict today. Want me to suggest a resolution?";
+      } else if (messageText.toLowerCase().includes('summarize') || messageText.toLowerCase().includes('board')) {
+        response = "**Board Meeting Summary (Last Quarter)**\n\n**Key Decisions:**\n• Approved Q3 financial statements\n• Authorized $2M budget increase for digital transformation\n• Approved executive compensation plan\n\n**Action Items:**\n• CFO to present revised forecast by next meeting\n• CEO to finalize strategic partnership terms\n\n*Source: Board Pack > Minutes*";
+      } else if (messageText.toLowerCase().includes('audit') || messageText.toLowerCase().includes('pending')) {
+        response = "Here are the pending audit tasks:\n\n1. **Revenue Recognition Testing** - Due in 2 days\n2. **Accounts Payable Sampling** - Due in 5 days\n3. **Inventory Valuation Review** - Due in 7 days\n\nWould you like me to prioritize these or create reminders?";
+      } else if (messageText.toLowerCase().includes('message') || messageText.toLowerCase().includes('unread')) {
+        response = "You have 3 unread messages from priority contacts:\n\n1. **Sarah Chen** (2h ago) - Board Meeting Agenda\n2. **Michael Torres** (4h ago) - Revenue Recognition Testing\n3. **Lisa Park** (6h ago) - SSP Documentation\n\nWould you like me to summarize or respond to any of these?";
+      } else if (messageText.toLowerCase().includes('reminder')) {
+        response = "I can set a reminder for you. Please specify:\n\n• What would you like to be reminded about?\n• When should I remind you?\n\nFor example: \"Remind me to review the board deck tomorrow at 9 AM\"";
+      } else if (messageText.toLowerCase().includes('report') || messageText.toLowerCase().includes('insight')) {
+        response = "**Weekly Productivity Insights**\n\n📊 **Meetings:** 12 this week (3 more than last week)\n📧 **Emails processed:** 47 (avg response time: 2.3 hours)\n✅ **Tasks completed:** 8 of 12 planned\n🎯 **Focus time:** 6.5 hours (below target of 10 hours)\n\n**Recommendations:**\n• Consider blocking 2 hours tomorrow for focused work\n• 3 meeting conflicts this week - consolidation suggested";
       }
       
       addAssistantMessage({ id: `a-${Date.now()}`, role: 'assistant', content: response, timestamp: new Date() });
@@ -209,6 +281,14 @@ export default function Assistant() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleQuickAction = (prompt: string) => {
+    if (prompt.endsWith(' ')) {
+      setInput(prompt);
+    } else {
+      handleSend(prompt);
     }
   };
 
@@ -246,7 +326,6 @@ export default function Assistant() {
                 playsInline
                 poster={avatarImage}
               />
-              {/* Gradient overlay at bottom */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
             </div>
             
@@ -320,17 +399,152 @@ export default function Assistant() {
             {/* Messages */}
             <div className="flex-1 overflow-auto p-4 space-y-4">
               {assistantMessages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                  <Sparkles className="w-12 h-12 text-primary mb-4" />
-                  <h3 className="font-display font-semibold text-lg mb-2 text-foreground">How can I help you today?</h3>
-                  <p className="text-sm text-muted-foreground mb-6">Ask me anything about your schedule, messages, or documents. Use "/" to insert knowledge sources.</p>
-                  <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-                    {quickPrompts.map((prompt, i) => (
-                      <Button key={i} variant="outline" size="sm" onClick={() => handleSend(prompt)} className="text-xs">
-                        {prompt}
-                      </Button>
+                <div className="h-full flex flex-col p-4">
+                  {/* Header */}
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mx-auto mb-4">
+                      <Sparkles className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="font-display font-semibold text-xl mb-2 text-foreground">How can I help you today?</h3>
+                    <p className="text-sm text-muted-foreground">Choose a quick action or type your question below</p>
+                  </div>
+
+                  {/* Featured Actions Grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    {featuredActions.map((action, i) => (
+                      <motion.button
+                        key={action.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        onClick={() => handleQuickAction(
+                          action.id === 'priorities' ? "What are my top priorities today?" :
+                          action.id === 'calendar' ? "What's on my calendar today?" :
+                          action.id === 'email' ? "Draft an email to " :
+                          "Summarize the board meeting notes"
+                        )}
+                        className={cn(
+                          "flex items-center gap-3 p-4 rounded-xl border border-border bg-gradient-to-r transition-all duration-200 hover:scale-[1.02] hover:shadow-md text-left group",
+                          action.gradient
+                        )}
+                      >
+                        <div className={cn("p-2 rounded-lg bg-background/80", action.iconColor)}>
+                          <action.icon className="w-5 h-5" />
+                        </div>
+                        <span className="font-medium text-sm">{action.label}</span>
+                        <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
+                      </motion.button>
                     ))}
                   </div>
+
+                  {/* Category Selector */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xs font-medium text-muted-foreground">Quick Actions:</span>
+                    <div className="flex gap-2 flex-wrap">
+                      {quickActionCategories.map((category) => (
+                        <button
+                          key={category.id}
+                          onClick={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                            selectedCategory === category.id 
+                              ? "bg-primary text-primary-foreground" 
+                              : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <category.icon className="w-3.5 h-3.5" />
+                          {category.title}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Category Actions */}
+                  <AnimatePresence mode="wait">
+                    {selectedCategory && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="grid grid-cols-3 gap-2 pb-4">
+                          {quickActionCategories.find(c => c.id === selectedCategory)?.actions.map((action, i) => (
+                            <motion.button
+                              key={action.id}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: i * 0.05 }}
+                              onClick={() => handleQuickAction(action.prompt)}
+                              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all hover:scale-[1.02] hover:shadow-sm"
+                            >
+                              <div className={cn(
+                                "p-2.5 rounded-xl bg-gradient-to-br",
+                                quickActionCategories.find(c => c.id === selectedCategory)?.color
+                              )}>
+                                <action.icon className="w-5 h-5 text-white" />
+                              </div>
+                              <span className="text-xs font-medium text-center">{action.label}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* All Actions Grid (collapsed by default) */}
+                  <AnimatePresence>
+                    {showAllActions && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-4 pb-4">
+                          {quickActionCategories.map((category, catIndex) => (
+                            <motion.div 
+                              key={category.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: catIndex * 0.1 }}
+                            >
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className={cn("p-1.5 rounded-lg bg-gradient-to-br", category.color)}>
+                                  <category.icon className="w-3.5 h-3.5 text-white" />
+                                </div>
+                                <span className="text-sm font-medium">{category.title}</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {category.actions.map((action, actionIndex) => (
+                                  <motion.button
+                                    key={action.id}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: catIndex * 0.1 + actionIndex * 0.05 }}
+                                    onClick={() => handleQuickAction(action.prompt)}
+                                    className="flex items-center gap-2 p-3 rounded-lg border border-border hover:bg-muted/50 transition-all text-left text-xs"
+                                  >
+                                    <action.icon className="w-4 h-4 text-muted-foreground" />
+                                    <span>{action.label}</span>
+                                  </motion.button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Toggle All Actions */}
+                  <button
+                    onClick={() => setShowAllActions(!showAllActions)}
+                    className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1 mx-auto"
+                  >
+                    {showAllActions ? 'Show less' : 'Show all actions'}
+                    <ArrowRight className={cn("w-3 h-3 transition-transform", showAllActions && "rotate-90")} />
+                  </button>
                 </div>
               ) : (
                 assistantMessages.map((msg) => (
@@ -354,6 +568,31 @@ export default function Assistant() {
               )}
             </div>
 
+            {/* Quick Actions Bar (when messages exist) */}
+            {assistantMessages.length > 0 && (
+              <div className="px-4 py-2 border-t border-border bg-muted/30">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {featuredActions.map((action) => (
+                    <Button
+                      key={action.id}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleQuickAction(
+                        action.id === 'priorities' ? "What are my top priorities today?" :
+                        action.id === 'calendar' ? "What's on my calendar today?" :
+                        action.id === 'email' ? "Draft an email to " :
+                        "Summarize the board meeting notes"
+                      )}
+                      className={cn("flex-shrink-0 gap-2 text-xs", action.iconColor)}
+                    >
+                      <action.icon className="w-3.5 h-3.5" />
+                      {action.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Input */}
             <div className="p-4 border-t border-border">
               <div className="flex gap-2">
@@ -361,7 +600,7 @@ export default function Assistant() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask anything... Use / to add knowledge"
+                  placeholder="Ask anything... Type / for quick commands"
                   className="flex-1"
                 />
                 <Button onClick={() => handleSend()} disabled={!input.trim()}>
