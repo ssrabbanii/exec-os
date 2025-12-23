@@ -1,20 +1,23 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Volume2, Check, Clock, Globe, Palette } from 'lucide-react';
+import { Sparkles, Volume2, Check, Clock, Globe, Palette, Lock } from 'lucide-react';
 
-// Avatar images imports
+// Avatar images imports - Main 3 avatars
+import avatarSydney from '@/assets/avatars/avatar-sydney.jpeg';
+import avatarVictoria from '@/assets/avatars/avatar-victoria.jpg';
+import avatarSarah from '@/assets/avatars/avatar-sarah.jpeg';
+
+// Coming soon avatars (using existing images)
 import avatarMei from '@/assets/avatars/avatar-mei.png';
 import avatarSophia from '@/assets/avatars/avatar-sophia.png';
 import avatarElena from '@/assets/avatars/avatar-elena.png';
-import avatarVictoria from '@/assets/avatars/avatar-victoria.jpg';
 import avatarPriya from '@/assets/avatars/avatar-priya.png';
 import avatarMichelle from '@/assets/avatars/avatar-michelle.png';
 import avatarIsabella from '@/assets/avatars/avatar-isabella.png';
@@ -27,6 +30,7 @@ export interface AvatarOption {
   style: string;
   isNew?: boolean;
   comingSoon?: boolean;
+  videoIntro?: string;
 }
 
 export interface VoiceOption {
@@ -47,27 +51,15 @@ export interface AvatarCustomization {
   language: string;
 }
 
-const avatarOptions: AvatarOption[] = [
+// Main 3 avatars - Available now
+export const mainAvatars: AvatarOption[] = [
   {
-    id: 'mei',
-    name: 'Mei',
-    image: avatarMei,
-    personality: 'Professional & Precise',
-    style: 'Executive Assistant',
-  },
-  {
-    id: 'sophia',
-    name: 'Sophia',
-    image: avatarSophia,
-    personality: 'Warm & Supportive',
-    style: 'Strategic Advisor',
-  },
-  {
-    id: 'elena',
-    name: 'Elena',
-    image: avatarElena,
-    personality: 'Calm & Focused',
-    style: 'Operations Expert',
+    id: 'sydney',
+    name: 'Sydney',
+    image: avatarSydney,
+    personality: 'Confident & Professional',
+    style: 'Executive Partner',
+    videoIntro: '/avatars/sydney-intro.mov',
   },
   {
     id: 'victoria',
@@ -75,7 +67,43 @@ const avatarOptions: AvatarOption[] = [
     image: avatarVictoria,
     personality: 'Confident & Direct',
     style: 'C-Suite Coach',
-    isNew: true,
+    videoIntro: '/avatars/victoria-intro.mov',
+  },
+  {
+    id: 'sarah',
+    name: 'Sarah',
+    image: avatarSarah,
+    personality: 'Warm & Strategic',
+    style: 'Leadership Advisor',
+    videoIntro: '/avatars/sarah-intro.mov',
+  },
+];
+
+// Coming soon avatars with lock
+export const comingSoonAvatars: AvatarOption[] = [
+  {
+    id: 'mei',
+    name: 'Mei',
+    image: avatarMei,
+    personality: 'Professional & Precise',
+    style: 'Executive Assistant',
+    comingSoon: true,
+  },
+  {
+    id: 'sophia',
+    name: 'Sophia',
+    image: avatarSophia,
+    personality: 'Warm & Supportive',
+    style: 'Strategic Advisor',
+    comingSoon: true,
+  },
+  {
+    id: 'elena',
+    name: 'Elena',
+    image: avatarElena,
+    personality: 'Calm & Focused',
+    style: 'Operations Expert',
+    comingSoon: true,
   },
   {
     id: 'priya',
@@ -83,6 +111,7 @@ const avatarOptions: AvatarOption[] = [
     image: avatarPriya,
     personality: 'Energetic & Insightful',
     style: 'Innovation Partner',
+    comingSoon: true,
   },
   {
     id: 'michelle',
@@ -90,6 +119,7 @@ const avatarOptions: AvatarOption[] = [
     image: avatarMichelle,
     personality: 'Empathetic & Strategic',
     style: 'Leadership Advisor',
+    comingSoon: true,
   },
   {
     id: 'isabella',
@@ -97,16 +127,8 @@ const avatarOptions: AvatarOption[] = [
     image: avatarIsabella,
     personality: 'Dynamic & Results-driven',
     style: 'Growth Strategist',
-    isNew: true,
+    comingSoon: true,
   },
-];
-
-const comingSoonAvatars: Partial<AvatarOption>[] = [
-  { id: 'cs1', name: 'Aisha', personality: 'Analytical & Thorough', comingSoon: true },
-  { id: 'cs2', name: 'Yuki', personality: 'Creative & Innovative', comingSoon: true },
-  { id: 'cs3', name: 'Emma', personality: 'Diplomatic & Thoughtful', comingSoon: true },
-  { id: 'cs4', name: 'Olivia', personality: 'Bold & Visionary', comingSoon: true },
-  { id: 'cs5', name: 'Ava', personality: 'Meticulous & Organized', comingSoon: true },
 ];
 
 const voiceOptions: VoiceOption[] = [
@@ -146,7 +168,7 @@ export function AvatarSelector({
   showVoiceOptions = true,
 }: AvatarSelectorProps) {
   const [activeTab, setActiveTab] = useState('avatars');
-  const selectedAvatar = avatarOptions.find(a => a.id === selectedAvatarId);
+  const selectedAvatar = mainAvatars.find(a => a.id === selectedAvatarId);
 
   const defaultCustomization: AvatarCustomization = {
     avatarId: selectedAvatarId,
@@ -168,13 +190,14 @@ export function AvatarSelector({
   if (compact) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
-          {avatarOptions.map((avatar) => (
+        {/* Main 3 Avatars */}
+        <div className="grid grid-cols-3 gap-4">
+          {mainAvatars.map((avatar) => (
             <button
               key={avatar.id}
               onClick={() => onSelectAvatar(avatar.id)}
               className={cn(
-                "relative group rounded-2xl overflow-hidden border-2 transition-all duration-200 aspect-square",
+                "relative group rounded-2xl overflow-hidden border-2 transition-all duration-200 aspect-[3/4]",
                 selectedAvatarId === avatar.id 
                   ? "border-primary ring-2 ring-primary/20 scale-105" 
                   : "border-border hover:border-primary/50 hover:scale-102"
@@ -185,19 +208,43 @@ export function AvatarSelector({
                 alt={avatar.name}
                 className="w-full h-full object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+              <div className="absolute bottom-2 left-2 right-2 text-left">
+                <p className="font-semibold text-white text-sm">{avatar.name}</p>
+              </div>
               {selectedAvatarId === avatar.id && (
-                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="w-4 h-4 text-primary-foreground" />
-                  </div>
+                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="w-4 h-4 text-primary-foreground" />
                 </div>
-              )}
-              {avatar.isNew && (
-                <Badge className="absolute top-1 right-1 text-[10px] px-1.5 py-0 bg-primary">NEW</Badge>
               )}
             </button>
           ))}
         </div>
+        
+        {/* Coming Soon */}
+        <div className="pt-3 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+            <Lock className="w-3 h-3" /> More avatars coming soon
+          </p>
+          <div className="grid grid-cols-6 gap-2">
+            {comingSoonAvatars.map((avatar) => (
+              <div
+                key={avatar.id}
+                className="relative rounded-xl overflow-hidden border border-dashed border-muted opacity-50 aspect-square"
+              >
+                <img
+                  src={avatar.image}
+                  alt={avatar.name}
+                  className="w-full h-full object-cover grayscale"
+                />
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                  <Lock className="w-3 h-3 text-muted-foreground" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
         <p className="text-center text-sm text-muted-foreground">
           Selected: <span className="font-medium text-foreground">{selectedAvatar?.name || 'None'}</span>
           {selectedAvatar && ` • ${selectedAvatar.personality}`}
@@ -227,11 +274,11 @@ export function AvatarSelector({
         </TabsList>
 
         <TabsContent value="avatars" className="space-y-6">
-          {/* Available Avatars */}
+          {/* Available Avatars - Main 3 */}
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-4">Choose Your AI Assistant</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {avatarOptions.map((avatar) => (
+            <div className="grid grid-cols-3 gap-4">
+              {mainAvatars.map((avatar) => (
                 <motion.button
                   key={avatar.id}
                   onClick={() => onSelectAvatar(avatar.id)}
@@ -252,18 +299,15 @@ export function AvatarSelector({
                     />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <p className="font-semibold text-white text-lg">{avatar.name}</p>
-                    <p className="text-white/80 text-xs">{avatar.personality}</p>
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="font-semibold text-white text-xl">{avatar.name}</p>
+                    <p className="text-white/80 text-sm">{avatar.personality}</p>
                     <p className="text-white/60 text-xs">{avatar.style}</p>
                   </div>
                   {selectedAvatarId === avatar.id && (
                     <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
                       <Check className="w-5 h-5 text-primary-foreground" />
                     </div>
-                  )}
-                  {avatar.isNew && (
-                    <Badge className="absolute top-3 left-3 bg-primary shadow-lg">NEW</Badge>
                   )}
                 </motion.button>
               ))}
@@ -273,21 +317,27 @@ export function AvatarSelector({
           {/* Coming Soon Section */}
           <div className="pt-4 border-t border-border">
             <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-4 h-4 text-muted-foreground" />
+              <Lock className="w-4 h-4 text-muted-foreground" />
               <h4 className="text-sm font-medium text-muted-foreground">More Avatars Coming Soon</h4>
-              <Badge variant="outline" className="text-xs">5+ new models</Badge>
+              <Badge variant="outline" className="text-xs">6+ new models</Badge>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               {comingSoonAvatars.map((avatar) => (
                 <div
                   key={avatar.id}
-                  className="relative rounded-2xl border-2 border-dashed border-muted bg-muted/30 p-4 text-center opacity-60"
+                  className="relative rounded-2xl overflow-hidden border-2 border-dashed border-muted bg-muted/30 opacity-60 cursor-not-allowed"
                 >
-                  <div className="w-12 h-12 rounded-full bg-muted mx-auto mb-2 flex items-center justify-center">
-                    <span className="text-lg font-bold text-muted-foreground">{avatar.name?.[0]}</span>
+                  <div className="aspect-[3/4] overflow-hidden">
+                    <img
+                      src={avatar.image}
+                      alt={avatar.name}
+                      className="w-full h-full object-cover grayscale"
+                    />
                   </div>
-                  <p className="font-medium text-sm">{avatar.name}</p>
-                  <p className="text-xs text-muted-foreground">{avatar.personality}</p>
+                  <div className="absolute inset-0 bg-background/40 flex flex-col items-center justify-center">
+                    <Lock className="w-6 h-6 text-muted-foreground mb-1" />
+                    <p className="text-xs font-medium text-muted-foreground">{avatar.name}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -445,7 +495,7 @@ export function AvatarSelector({
             <p className="text-sm text-muted-foreground">{selectedAvatar.personality}</p>
             <p className="text-xs text-muted-foreground">{selectedAvatar.style}</p>
           </div>
-          <Badge variant="outline" className="bg-background">Selected</Badge>
+          <Badge className="bg-primary">Active</Badge>
         </div>
       )}
     </div>
