@@ -9,7 +9,7 @@ import {
   Mic, MicOff, Send, User, Sparkles, Loader2, 
   Calendar, Mail, FileText, Search, Bell, CheckSquare,
   BarChart3, Users, Clock, Briefcase, MessageSquare, Zap,
-  ArrowRight, Plus
+  ArrowRight, Plus, Volume2, VolumeX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -128,6 +128,7 @@ export default function Assistant() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAllActions, setShowAllActions] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const currentProject = projects.find(p => p.id === currentProjectId);
@@ -322,11 +323,25 @@ export default function Assistant() {
                 className="w-full h-full object-cover"
                 autoPlay
                 loop
-                muted
+                muted={isMuted}
                 playsInline
                 poster={avatarImage}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+              
+              {/* Sound Toggle Button */}
+              <Button
+                size="icon"
+                variant="secondary"
+                className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 border-0 backdrop-blur-sm"
+                onClick={() => setIsMuted(!isMuted)}
+              >
+                {isMuted ? (
+                  <VolumeX className="w-5 h-5 text-white" />
+                ) : (
+                  <Volume2 className="w-5 h-5 text-white" />
+                )}
+              </Button>
             </div>
             
             {/* Voice Button */}
