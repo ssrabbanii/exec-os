@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Sparkles, Check, ArrowRight, ArrowLeft, User, Link2, FolderPlus, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AvatarSelector } from '@/components/avatar/AvatarSelector';
 
 const steps = [
   { id: 'welcome', title: 'Welcome', icon: Sparkles },
@@ -24,8 +25,8 @@ const mockSources = [
 
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(0);
-  const { avatars, contacts, projects, setSelectedAvatar, addConnectedSource, addPriorityContact, removePriorityContact, completeOnboarding, onboarding } = useAppStore();
-  const [selectedAvatarId, setSelectedAvatarLocal] = useState(avatars[0]?.id);
+  const { contacts, projects, setSelectedAvatar, addConnectedSource, addPriorityContact, completeOnboarding } = useAppStore();
+  const [selectedAvatarId, setSelectedAvatarLocal] = useState('mei');
   const [connectedSources, setConnectedSources] = useState<string[]>([]);
   const [selectedProject, setSelectedProject] = useState(projects[0]?.id);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
@@ -78,16 +79,14 @@ export default function Onboarding() {
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="font-display text-2xl font-bold mb-2">Choose Your Avatar</h2>
-                    <p className="text-muted-foreground">Select an avatar for your AI assistant</p>
+                    <p className="text-muted-foreground">Select an AI assistant that matches your style</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    {avatars.map((avatar) => (
-                      <button key={avatar.id} onClick={() => setSelectedAvatarLocal(avatar.id)} className={cn("p-4 rounded-xl border-2 transition-all", selectedAvatarId === avatar.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50")}>
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-mint-light to-lavender-light mx-auto mb-2 flex items-center justify-center text-2xl font-bold text-primary">{avatar.name[0]}</div>
-                        <p className="text-sm font-medium text-center">{avatar.name}</p>
-                      </button>
-                    ))}
-                  </div>
+                  <AvatarSelector
+                    selectedAvatarId={selectedAvatarId}
+                    onSelectAvatar={setSelectedAvatarLocal}
+                    compact={false}
+                    showVoiceOptions={false}
+                  />
                 </div>
               )}
 
