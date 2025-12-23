@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Mic, MicOff, Send, User, Sparkles, Loader2, 
   Calendar, Mail, FileText, Search, Bell, CheckSquare,
   BarChart3, Users, Clock, Briefcase, MessageSquare, Zap,
-  ArrowRight, Plus, Volume2, VolumeX
+  ArrowRight, Plus, Volume2, VolumeX, FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -117,7 +118,7 @@ const featuredActions = [
 export default function Assistant() {
   const { 
     assistantMode, setAssistantMode, assistantMessages, addAssistantMessage, 
-    currentProjectId, projects, settings, meetings 
+    currentProjectId, projects, settings, meetings, documents, folders
   } = useAppStore();
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -129,13 +130,59 @@ export default function Assistant() {
   const [showAllActions, setShowAllActions] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [showKnowledgeMenu, setShowKnowledgeMenu] = useState(false);
+  const [knowledgeFilter, setKnowledgeFilter] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const currentProject = projects.find(p => p.id === currentProjectId);
   const selectedAvatarId = settings?.selectedAvatarId || 'sydney';
   const avatarImage = avatarImages[selectedAvatarId] || avatarSydney;
   const avatarName = avatarNames[selectedAvatarId] || 'Sydney';
   const avatarVideo = avatarVideos[selectedAvatarId] || avatarVideos['sydney'];
+
+  // Knowledge base items for autocomplete
+  const knowledgeItems = [
+    ...documents.map(doc => ({ type: 'document' as const, id: doc.id, name: doc.title, folder: folders.find(f => f.id === doc.folderId)?.name })),
+    ...folders.map(folder => ({ type: 'folder' as const, id: folder.id, name: folder.name, folder: null })),
+  ];
+
+  const filteredKnowledge = knowledgeItems.filter(item =>
+    item.name.toLowerCase().includes(knowledgeFilter.toLowerCase())
+  );
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [assistantMessages]);
+
+  // Handle "/" command for knowledge base
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInput(value);
+    
+    // Check for "/" command
+    const lastSlashIndex = value.lastIndexOf('/');
+    if (lastSlashIndex !== -1 && (lastSlashIndex === 0 || value[lastSlashIndex - 1] === ' ')) {
+      const query = value.substring(lastSlashIndex + 1);
+      setKnowledgeFilter(query);
+      setShowKnowledgeMenu(true);
+    } else {
+      setShowKnowledgeMenu(false);
+      setKnowledgeFilter('');
+    }
+  };
+
+  const insertKnowledgeReference = (item: typeof knowledgeItems[0]) => {
+    const lastSlashIndex = input.lastIndexOf('/');
+    const beforeSlash = input.substring(0, lastSlashIndex);
+    const reference = `[${item.type === 'folder' ? '📁' : '📄'} ${item.name}]`;
+    setInput(beforeSlash + reference + ' ');
+    setShowKnowledgeMenu(false);
+    setKnowledgeFilter('');
+    inputRef.current?.focus();
+  };
 
   // Simulate voice interpretation typing effect
   useEffect(() => {
@@ -279,7 +326,19 @@ export default function Assistant() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (showKnowledgeMenu) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowKnowledgeMenu(false);
+        return;
+      }
+      if (e.key === 'Enter' && filteredKnowledge.length > 0) {
+        e.preventDefault();
+        insertKnowledgeReference(filteredKnowledge[0]);
+        return;
+      }
+    }
+    if (e.key === 'Enter' && !e.shiftKey && !showKnowledgeMenu) {
       e.preventDefault();
       handleSend();
     }
@@ -412,7 +471,8 @@ export default function Assistant() {
         <div className="flex-1 flex flex-col min-h-0">
           <Card className="flex-1 flex flex-col overflow-hidden">
             {/* Messages */}
-            <div className="flex-1 overflow-auto p-4 space-y-4">
+            <ScrollArea className="flex-1 max-h-[calc(100vh-300px)]">
+              <div className="p-4 space-y-4">
               {assistantMessages.length === 0 ? (
                 <div className="h-full flex flex-col p-4">
                   {/* Header */}
@@ -562,26 +622,30 @@ export default function Assistant() {
                   </button>
                 </div>
               ) : (
-                assistantMessages.map((msg) => (
-                  <div key={msg.id} className={cn("flex gap-3", msg.role === 'user' ? "justify-end" : "")}>
-                    {msg.role === 'assistant' && (
-                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-primary/20">
-                        <img src={avatarImage} alt={avatarName} className="w-full h-full object-cover" />
+                <>
+                  {assistantMessages.map((msg) => (
+                    <div key={msg.id} className={cn("flex gap-3", msg.role === 'user' ? "justify-end" : "")}>
+                      {msg.role === 'assistant' && (
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-primary/20">
+                          <img src={avatarImage} alt={avatarName} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className={cn("max-w-[80%] rounded-2xl px-4 py-3", msg.role === 'user' ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-[10px] opacity-70 mt-1">{format(msg.timestamp, 'h:mm a')}</p>
                       </div>
-                    )}
-                    <div className={cn("max-w-[80%] rounded-2xl px-4 py-3", msg.role === 'user' ? "bg-primary text-primary-foreground" : "bg-muted")}>
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <p className="text-[10px] opacity-70 mt-1">{format(msg.timestamp, 'h:mm a')}</p>
+                      {msg.role === 'user' && (
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4" />
+                        </div>
+                      )}
                     </div>
-                    {msg.role === 'user' && (
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <User className="w-4 h-4" />
-                      </div>
-                    )}
-                  </div>
-                ))
+                  ))}
+                  <div ref={messagesEndRef} />
+                </>
               )}
-            </div>
+              </div>
+            </ScrollArea>
 
             {/* Quick Actions Bar (when messages exist) */}
             {assistantMessages.length > 0 && (
@@ -609,13 +673,70 @@ export default function Assistant() {
             )}
 
             {/* Input */}
-            <div className="p-4 border-t border-border">
+            <div className="p-4 border-t border-border relative">
+              {/* Knowledge Base Autocomplete Menu */}
+              <AnimatePresence>
+                {showKnowledgeMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full left-4 right-4 mb-2 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50"
+                  >
+                    <div className="p-2 border-b border-border bg-muted/50">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span>Knowledge Base - Type to filter</span>
+                      </div>
+                    </div>
+                    <ScrollArea className="max-h-48">
+                      {filteredKnowledge.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          No matching documents or folders
+                        </div>
+                      ) : (
+                        <div className="p-1">
+                          {filteredKnowledge.slice(0, 8).map((item) => (
+                            <button
+                              key={`${item.type}-${item.id}`}
+                              onClick={() => insertKnowledgeReference(item)}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
+                            >
+                              <div className={cn(
+                                "w-8 h-8 rounded-lg flex items-center justify-center",
+                                item.type === 'folder' ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-500"
+                              )}>
+                                {item.type === 'folder' ? (
+                                  <FolderOpen className="w-4 h-4" />
+                                ) : (
+                                  <FileText className="w-4 h-4" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{item.name}</p>
+                                {item.folder && (
+                                  <p className="text-xs text-muted-foreground truncate">in {item.folder}</p>
+                                )}
+                              </div>
+                              <Badge variant="secondary" className="text-[10px] flex-shrink-0">
+                                {item.type}
+                              </Badge>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
               <div className="flex gap-2">
                 <Input
+                  ref={inputRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask anything... Type / for quick commands"
+                  placeholder="Ask anything... Type / to reference knowledge base"
                   className="flex-1"
                 />
                 <Button onClick={() => handleSend()} disabled={!input.trim()}>
